@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 const axios = require("axios");
+const Table = require("cli-table3");
 
 // 下载目录路径-默认是当前路径
 const DOWNLOAD_DIR = path.join(__dirname, "downloaded");
@@ -35,6 +36,42 @@ const getExtensions = () => {
   }
 };
 
+// 显示插件列表表格
+const printExtensionsTable = extensions => {
+  const table = new Table({
+    head: ["插件名称", "版本", "发布者"],
+    style: { head: ["cyan"], border: ["grey"] }
+  });
+
+  extensions.forEach(ext => {
+    table.push([ext.extension, ext.version, ext.publisher]);
+  });
+
+  console.log("\n📦 检测到的 VSCode 插件列表, 共: ", extensions.length, "个");
+  console.log(table.toString());
+};
+
+// 显示下载状态表格
+const printDownloadStatusTable = statusList => {
+  const table = new Table({
+    head: ["插件名称", "下载状态", "耗时(ms)"],
+    style: { head: ["green"], border: ["grey"] }
+  });
+
+  statusList.forEach(item => {
+    const status = item.success ? "✅ 成功" : "❌ 失败";
+    table.push([item.extension, status, item.time]);
+  });
+
+  console.log("\n📊 下载状态汇总:");
+  console.log(table.toString());
+
+  // 统计成功和失败数量
+  const successCount = statusList.filter(item => item.success).length;
+  const failCount = statusList.length - successCount;
+  console.log(`\n📈 统计: 成功 ${successCount} 个，失败 ${failCount} 个`);
+};
+
 // 根据插件信息拼接 open-vsx.org 的下载地址
 const getVsixUrl = ({ publisher, extension, version }) =>
   `https://open-vsx.org/api/${publisher}/${extension}/${version}/file/${publisher}.${extension}-${version}.vsix`;
@@ -58,31 +95,67 @@ const downloadVsix = async (url, dest) => {
 
 // 批量下载所有插件
 const downloadAllExtensions = async (extensions, downloadDir) => {
+  const statusList = [];
+
   for (let i = 0, len = extensions.length; i < len; i++) {
     const ext = extensions[i];
     const url = getVsixUrl(ext);
     const filename = `${ext.publisher}.${ext.extension}-${ext.version}.vsix`;
     const dest = path.join(downloadDir, filename);
-    console.log(`正在下载第 ${i + 1} 个插件 ${filename} ...`);
+
+    console.log(`正在下载第 ${i + 1}/${len} 个插件: ${ext.extension} ...`);
+
+    const startTime = Date.now();
     try {
       await downloadVsix(url, dest);
-      console.log(`下载 ${filename} ... 下载成功`);
+      const endTime = Date.now();
+      const time = endTime - startTime;
+
+      statusList.push({
+        extension: ext.extension,
+        success: true,
+        time: time
+      });
+
+      console.log(`✅ 下载成功: ${filename} (耗时: ${time}ms)`);
     } catch (e) {
-      console.log(`下载 ${filename} ... 下载失败,失败原因: ${e.message}`);
+      const endTime = Date.now();
+      const time = endTime - startTime;
+
+      statusList.push({
+        extension: ext.extension,
+        success: false,
+        time: time
+      });
+
+      console.log(`❌ 下载失败: ${filename} (耗时: ${time}ms) - ${e.message}`);
     }
   }
+
+  return statusList;
 };
 
-// 获取插件列表并批量下载
-const main = async () => {
-  // 创建/获取下载目录
-  const downloadDir = ensureDir(DOWNLOAD_DIR);
-  // 获取插件列表
-  const extensions = getExtensions();
-  console.log(`共检测到 ${extensions.length} 个插件，开始下载...`);
-  await downloadAllExtensions(extensions, downloadDir);
-  console.log("全部下载完成！");
-};
+// 运行入口
+(async () => {
+  try {
+    // 创建/获取下载目录
+    const downloadDir = ensureDir(DOWNLOAD_DIR);
 
-// 运行
-main();
+    // 获取插件列表
+    const extensions = getExtensions();
+
+    // 显示插件列表表格
+    printExtensionsTable(extensions);
+
+    console.log("\n🚀 开始批量下载...");
+    const statusList = await downloadAllExtensions(extensions, downloadDir);
+
+    // 显示下载状态表格
+    printDownloadStatusTable(statusList);
+
+    console.log("\n🎉 全部下载完成！");
+  } catch (error) {
+    console.error("❌ 程序执行出错:", error.message);
+    process.exit(1);
+  }
+})();
