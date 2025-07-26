@@ -58,18 +58,17 @@ const downloadVsix = async (url, dest) => {
 
 // 批量下载所有插件
 const downloadAllExtensions = async (extensions, downloadDir) => {
-  const tasks = [];
   for (let i = 0, len = extensions.length; i < len; i++) {
     const ext = extensions[i];
     const url = getVsixUrl(ext);
     const filename = `${ext.publisher}.${ext.extension}-${ext.version}.vsix`;
     const dest = path.join(downloadDir, filename);
     console.log(`正在下载第 ${i + 1} 个插件 ${filename} ...`);
-    const result = await downloadVsix(url, dest);
-    if (result) {
-      console.log(`下载 ${filename} ... 成功`);
-    } else {
-      console.log(`下载 ${filename} ... 失败`);
+    try {
+      await downloadVsix(url, dest);
+      console.log(`下载 ${filename} ... 下载成功`);
+    } catch (e) {
+      console.log(`下载 ${filename} ... 下载失败,失败原因: ${e.message}`);
     }
   }
 };
