@@ -1,5 +1,5 @@
 {
-  "name": "vscode-visix-download",
+  "name": "vscode-vsix-download",
   "version": "1.0.0",
   "description": "一个用于批量下载 VSCode 插件的 Node.js 工具，可以自动获取当前已安装的插件列表并下载对应的 VSIX 文件到本地",
   "main": "download-vsix.js",
@@ -31,10 +31,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/vscode-visix-download.git"
+    "url": "https://github.com/yourusername/vscode-vsix-download.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/vscode-visix-download/issues"
+    "url": "https://github.com/yourusername/vscode-vsix-download/issues"
   },
-  "homepage": "https://github.com/yourusername/vscode-visix-download#readme"
+  "homepage": "https://github.com/yourusername/vscode-vsix-download#readme"
 }
